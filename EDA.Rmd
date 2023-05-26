@@ -1,7 +1,16 @@
-install.packages("readxl")
-install.packages("dplyr")
-install.packages("ggplot2")
+---
+title: "EDA"
+output: html_document
+date: "2023-05-26"
+---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+After that load the packages the data. 
+
+```{r}
 library(dplyr)
 library(readxl)
 library(ggplot2)
@@ -11,11 +20,6 @@ index <- read.csv("data/index.csv")
 zoo1 <- read_excel("data/zoo1.xlsx")
 zoo2 <- read.csv("data/zoo2.csv")
 zoo3 <- read.csv("data/zoo3.csv")
-
-
-#---------------DATA VISUALIZATION---------------#
-
-#Value of fish species per country
 
 fish <- select(index, c("IUCN", "Species", "Country", "Value")) %>%
   filter(Species == "Fish", IUCN == "TOT_KNOWN") %>%
@@ -36,6 +40,16 @@ print(fish_plot)
 endangered_ger <- select(index, c("IUCN", "Species", "COU", "Value")) %>%
   filter(IUCN=="VULNERABLE", COU == "DEU") %>%
   select(Species, Value)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+endangered_ger <- select(index, c("IUCN", "Species", "COU", "Value")) %>%
+  filter(IUCN=="VULNERABLE", COU == "DEU") %>%
+  select(Species, Value)
 
 endangered_ger_plot <- ggplot(data = endangered_ger, aes(x = Species, y = Value)) +
   geom_bar(stat = "identity") +
@@ -43,39 +57,6 @@ endangered_ger_plot <- ggplot(data = endangered_ger, aes(x = Species, y = Value)
   ylab("Value") +
   ggtitle("Value of endangered species in germany") + 
   theme(axis.title.x = element_text(angle = 0, hjust = 1, margin = margin(t = 10)))
- 
-print(endangered_ger_plot)  
-
-
-#Number of endangered species in Germany without invertebrates
-
-endangered_ger_wo_invertebrates <- slice_head(endangered_ger,n = 5)
-
-endangered_ger_wo_invertebrates_plot <- ggplot(data = endangered_ger_wo_invertebrates, 
-                                               aes(x = Species, y = Value))+
-  geom_bar(stat = "identity") +
-  xlab("Species") + 
-  ylab("Value") +
-  ggtitle("Value of endangered species without invertebrates in germany") + 
-  theme(axis.title.x = element_text(angle = 0, hjust = 1, margin = margin(t = 10)))
-
-print(endangered_ger_wo_invertebrates_plot)
-
-
-#---------------MERGING DATA---------------#
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+```
 
 
