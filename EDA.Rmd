@@ -7,14 +7,18 @@ date: "2023-05-26"
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-
-After that load the packages the data. 
-
-```{r}
+## Requiered packages:
+```{r, message=FALSE}
+#load packages
 library(dplyr)
 library(readxl)
 library(ggplot2)
+library(maps)
+```
 
+## Fish species per country
+
+```{r}
 class <-read.csv("data/class.csv")
 index <- read.csv("data/index.csv")
 zoo1 <- read_excel("data/zoo1.xlsx")
@@ -33,20 +37,19 @@ fish_plot <- ggplot(data = fish, aes(x = Country, y = Value)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1, margin = margin(t = 10)))
 
 print(fish_plot)
+```
+
+## Vulnerable species in Germany
 
 
-#Value of endangered species in Germany
+
+```{r}
+#Number of vulnerable species in Germany
 
 endangered_ger <- select(index, c("IUCN", "Species", "COU", "Value")) %>%
   filter(IUCN=="VULNERABLE", COU == "DEU") %>%
   select(Species, Value)
-```
 
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
 endangered_ger <- select(index, c("IUCN", "Species", "COU", "Value")) %>%
   filter(IUCN=="VULNERABLE", COU == "DEU") %>%
   select(Species, Value)
@@ -57,6 +60,130 @@ endangered_ger_plot <- ggplot(data = endangered_ger, aes(x = Species, y = Value)
   ylab("Value") +
   ggtitle("Value of endangered species in germany") + 
   theme(axis.title.x = element_text(angle = 0, hjust = 1, margin = margin(t = 10)))
+
+print(endangered_ger_plot)
 ```
+
+## Vulnerable species in Germany without Invertebrates
+
+```{r}
+#Number of endangered species in Germany without invertebrates
+
+#wo = without
+endangered_ger_wo_invertebrates <- slice_head(endangered_ger,n = 5)
+
+endangered_ger_wo_invertebrates_plot <- ggplot(data = endangered_ger_wo_invertebrates, 
+                                               aes(x = Species, y = Value))+
+  geom_bar(stat = "identity") +
+  xlab("Species") + 
+  ylab("Value") +
+  ggtitle("Value of endangered species without invertebrates in germany") + 
+  theme(axis.title.x = element_text(angle = 0, hjust = 1, margin = margin(t = 10)))
+
+print(endangered_ger_wo_invertebrates_plot)
+```
+
+
+## Merging Data
+```{r}
+zoo1_temp <- zoo1
+not_change <- c("animal_name", "legs", "class_type") # these columns should not be changed
+
+for (i in 1:ncol(zoo1_temp)) {
+  if (names(zoo1_temp)[i] %in% not_change){
+    next
+  }
+  else {
+    zoo1_temp[i] <- lapply(zoo1_temp[i], as.logical)
+    class(zoo1_temp[i])
+  }
+}
+
+zoo2_temp <- zoo2
+
+for (i in 1:ncol(zoo2_temp)) {
+  if (names(zoo2_temp)[i] %in% not_change){
+    next
+  }
+  else {
+    zoo2_temp[i] <- lapply(zoo2_temp[i], as.logical)
+    class(zoo2_temp[i])
+  }
+}
+
+zoo3_temp <- zoo3
+
+for (i in 1:ncol(zoo3_temp)) {
+  if (names(zoo3_temp)[i] %in% not_change){
+    next
+  }
+  else {
+    zoo3_temp[i] <- lapply(zoo3_temp[i], as.logical)
+    class(zoo3_temp[i])
+  }
+}
+
+zoo_complete <- bind_rows(zoo1_temp, zoo2_temp, zoo3_temp)
+# this took me way to much time lol
+
+zoo_complete <- bind_rows(zoo1_temp, zoo2_temp, zoo3_temp)
+
+
+# select necessary columns
+class_selection <- select(class, c("Class_Number", "Class_Type")) %>%
+  rename(class_type = Class_Number)
+zoo_dataset <- inner_join(zoo_complete, class_selection, by = "class_type")
+
+```
+## Map of endangered species by value
+```{r}
+world_map <- map_data("world")
+# get critical endangered mammals
+endangered_world <- select(index, "IUCN", "SPEC", "Country", "Value") %>%
+  filter(IUCN == "CRITICAL", SPEC == "MAMMAL") %>%
+  select(Country, Value)
+
+#change country names so they will be displayed
+endangered_world[19, "Country"] <- "Slovakia"
+endangered_world[23, "Country"] <- "Turkey"
+endangered_world[24, "Country"] <- "UK"
+
+# merge data
+endangered_world_map <- merge(world_map, endangered_world, by.x = "region", by.y = "Country", all.x = TRUE)
+
+# TODO: Fix holes
+ggplot() +
+  geom_polygon(data = endangered_world_map, aes(x = long, y = lat, group = group, fill = Value)) +
+  scale_fill_gradient(low = "lightpink", high = "darkred") +
+  geom_path(data = world_map, aes(x = long, y = lat, group = group), color = "darkgrey", linewidth = 0.1) +
+  coord_equal()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
