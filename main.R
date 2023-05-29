@@ -3,12 +3,16 @@ install.packages("dplyr")
 install.packages("ggplot2")
 install.packages("maps")
 install.packages("ggpolypath")
+install.packages("caret")
+install.packages("tree")
 
 library(dplyr)
 library(readxl)
 library(ggplot2)
 library(maps)
 library(ggpolypath)
+library(caret)
+library(tree)
 
 class <-read.csv("data/class.csv")
 index <- read.csv("data/index.csv")
@@ -138,11 +142,38 @@ colnames(endangered_world)[1] <- "region"
 endangered_world_map <- inner_join(world_map, endangered_world, by = "region")
 
 ggplot() +
-  geom_polygon(data = endangered_world_map2, aes(x = long, y = lat, group = group, fill = Value)) +
+  geom_polygon(data = endangered_world_map, aes(x = long, y = lat, group = group, fill = Value)) +
   scale_fill_gradient(low = "lightpink", high = "darkred") +
   geom_path(data = world_map, aes(x = long, y = lat, group = group), color = "darkgrey", linewidth = 0.1) +
   theme(panel.background = element_rect(fill="white")) + 
+  labs(fill = "Number of \nendangered mammals:") +
   coord_equal()
+
+
+
+
+zoo_partition <- createDataPartition(zoo_dataset$class_type, p = 0.7, list = FALSE)
+zoo_training <- zoo_dataset[zoo_partition,]
+zoo_test <- zoo_dataset[-zoo_partition,]
+
+my_tree <- tree(class_type ~ .-animal_name-Class_Type-class_type, data = zoo_dataset)
+plot(my_tree, 
+     main = "Zoo decision tree", 
+     type = "uniform")
+text(my_tree)
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
