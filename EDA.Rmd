@@ -167,7 +167,6 @@ ggplot() +
 ```
 
 ## Naive Classification Tree
-
 ```{r}
 zoo_partition <- createDataPartition(zoo_dataset$class_type, p = 0.7, list = FALSE)
 zoo_training <- zoo_dataset[zoo_partition,]
@@ -179,12 +178,6 @@ plot(my_tree,
      type = "uniform")
 text(my_tree)
 ```
-
-
-
-
-
-
 
 
 
