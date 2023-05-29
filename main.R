@@ -2,11 +2,13 @@ install.packages("readxl")
 install.packages("dplyr")
 install.packages("ggplot2")
 install.packages("maps")
+install.packages("ggpolypath")
 
 library(dplyr)
 library(readxl)
 library(ggplot2)
 library(maps)
+library(ggpolypath)
 
 class <-read.csv("data/class.csv")
 index <- read.csv("data/index.csv")
@@ -126,16 +128,21 @@ endangered_world[19, "Country"] <- "Slovakia"
 endangered_world[23, "Country"] <- "Turkey"
 endangered_world[24, "Country"] <- "UK"
 
-# merge data
-endangered_world_map <- merge(world_map, endangered_world, by.x = "region", by.y = "Country", all.x = TRUE)
+#rename column for join
+colnames(endangered_world)[1] <- "region"
 
-# TODO: Fix holes
+# merge data
+
+#endangered_world_map <- merge(world_map, endangered_world, by.x = "region", by.y = "Country", all.x = TRUE) OLD
+
+endangered_world_map <- inner_join(world_map, endangered_world, by = "region")
+
 ggplot() +
-  geom_polygon(data = endangered_world_map, aes(x = long, y = lat, group = group, fill = Value)) +
+  geom_polygon(data = endangered_world_map2, aes(x = long, y = lat, group = group, fill = Value)) +
   scale_fill_gradient(low = "lightpink", high = "darkred") +
   geom_path(data = world_map, aes(x = long, y = lat, group = group), color = "darkgrey", linewidth = 0.1) +
+  theme(panel.background = element_rect(fill="white")) + 
   coord_equal()
-
 
 
 

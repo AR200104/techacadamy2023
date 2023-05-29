@@ -89,6 +89,7 @@ print(endangered_ger_wo_invertebrates_plot)
 zoo1_temp <- zoo1
 not_change <- c("animal_name", "legs", "class_type") # these columns should not be changed
 
+# this took me way to much time lol
 for (i in 1:ncol(zoo1_temp)) {
   if (names(zoo1_temp)[i] %in% not_change){
     next
@@ -124,10 +125,6 @@ for (i in 1:ncol(zoo3_temp)) {
 }
 
 zoo_complete <- bind_rows(zoo1_temp, zoo2_temp, zoo3_temp)
-# this took me way to much time lol
-
-zoo_complete <- bind_rows(zoo1_temp, zoo2_temp, zoo3_temp)
-
 
 # select necessary columns
 class_selection <- select(class, c("Class_Number", "Class_Type")) %>%
@@ -148,14 +145,21 @@ endangered_world[19, "Country"] <- "Slovakia"
 endangered_world[23, "Country"] <- "Turkey"
 endangered_world[24, "Country"] <- "UK"
 
-# merge data
-endangered_world_map <- merge(world_map, endangered_world, by.x = "region", by.y = "Country", all.x = TRUE)
+#rename column for join
+colnames(endangered_world)[1] <- "region"
 
-# TODO: Fix holes
+# merge data
+
+#endangered_world_map <- merge(world_map, endangered_world, by.x = "region", by.y = "Country", all.x = TRUE) OLD
+
+endangered_world_map <- inner_join(world_map, endangered_world, by = "region")
+
 ggplot() +
   geom_polygon(data = endangered_world_map, aes(x = long, y = lat, group = group, fill = Value)) +
   scale_fill_gradient(low = "lightpink", high = "darkred") +
   geom_path(data = world_map, aes(x = long, y = lat, group = group), color = "darkgrey", linewidth = 0.1) +
+  theme(panel.background = element_rect(fill="white")) + 
+  labs(fill = "Number of \nendangered mammals:") +
   coord_equal()
 ```
 
