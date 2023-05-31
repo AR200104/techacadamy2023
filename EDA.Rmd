@@ -19,7 +19,7 @@ library(tree)
 
 ```
 
-## Fish species per country
+## Loading data + Fish species per country
 
 ```{r}
 class <-read.csv("data/class.csv")
@@ -27,6 +27,10 @@ index <- read.csv("data/index.csv")
 zoo1 <- read_excel("data/zoo1.xlsx")
 zoo2 <- read.csv("data/zoo2.csv")
 zoo3 <- read.csv("data/zoo3.csv")
+
+dim(index)
+glimpse(zoo1)
+is.na(class)
 
 fish <- select(index, c("IUCN", "Species", "Country", "Value")) %>%
   filter(Species == "Fish", IUCN == "TOT_KNOWN") %>%
