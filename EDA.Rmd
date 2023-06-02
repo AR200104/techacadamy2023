@@ -176,7 +176,7 @@ zoo_partition <- createDataPartition(zoo_dataset$class_type, p = 0.7, list = FAL
 zoo_training <- zoo_dataset[zoo_partition,]
 zoo_test <- zoo_dataset[-zoo_partition,]
 
-my_tree <- tree(class_type ~ .-animal_name-Class_Type-class_type, data = zoo_dataset)
+my_tree <- tree(factor(zoo_training$Class_Type) ~ .-animal_name-Class_Type-class_type, data = zoo_training)
 plot(my_tree, 
      main = "Zoo decision tree", 
      type = "uniform")
