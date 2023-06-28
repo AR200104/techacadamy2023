@@ -5,6 +5,7 @@ install.packages("maps")
 install.packages("ggpolypath")
 install.packages("caret")
 install.packages("tree")
+install.packages("randomForest")
 
 library(dplyr)
 library(readxl)
@@ -13,6 +14,7 @@ library(maps)
 library(ggpolypath)
 library(caret)
 library(tree)
+library(randomForest)
 
 class <-read.csv("data/class.csv")
 index <- read.csv("data/index.csv")
@@ -52,7 +54,7 @@ endangered_ger_plot <- ggplot(data = endangered_ger, aes(x = Species, y = Value)
   ylab("Value") +
   ggtitle("Value of endangered species in germany") + 
   theme(axis.title.x = element_text(angle = 0, hjust = 1, margin = margin(t = 10)))
- 
+
 print(endangered_ger_plot)  
 
 
@@ -156,13 +158,43 @@ zoo_partition <- createDataPartition(zoo_dataset$class_type, p = 0.7, list = FAL
 zoo_training <- zoo_dataset[zoo_partition,]
 zoo_test <- zoo_dataset[-zoo_partition,]
 
-my_tree <- tree(class_type ~ .-animal_name-Class_Type-class_type, data = zoo_dataset)
+my_tree <- tree(factor(zoo_training$Class_Type) ~ .-animal_name-Class_Type-class_type, data = zoo_training)
 plot(my_tree, 
      main = "Zoo decision tree", 
      type = "uniform")
 text(my_tree)
 
 
+# data for confusion_matrix
+pred <- predict(my_tree, zoo_test, type = "class")
+
+confusion_matrix <- confusionMatrix(pred, factor(zoo_test$Class_Type))
+
+# plot confusion_matrix
+ggplot(data = as.data.frame(confusion_matrix$table), aes(x = Prediction, y = Reference, fill = Freq)) +
+  geom_tile() +
+  geom_text(aes(label = Freq)) + 
+  scale_fill_gradient(low="white", high="#009194")
+  
+
+# Random forest
+
+# get neccesary columns
+zoo_training_forest <- subset(zoo_training, select= -c(animal_name, Class_Type, class_type))
+
+forest <- randomForest(zoo_training_forest, factor(zoo_training$Class_Type), ntree = 100)
+pred_forest <- predict(forest, zoo_test, type = "class")
+
+confusion_matrix_forest <- confusionMatrix(pred_forest , factor(zoo_test$Class_Type))
+
+# plot confusion_matrix
+ggplot(data = as.data.frame(confusion_matrix_forest$table), aes(x = Prediction, y = Reference, fill = Freq)) +
+  geom_tile() +
+  geom_text(aes(label = Freq)) + 
+  scale_fill_gradient(low="white", high="#009194")
+
+
+varImpPlot(forest)
 
 
 
