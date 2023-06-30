@@ -15,8 +15,12 @@ library(dplyr)
 library(readxl)
 library(ggplot2)
 library(maps)
+library(ggpolypath)
 library(caret)
 library(tree)
+library(randomForest)
+library(umap)
+library(xgboost)
 
 ```
 
@@ -42,7 +46,7 @@ fish_plot <- ggplot(data = fish, aes(x = Country, y = Value)) +
   xlab("Country") +
   ylab("Value") +
   ggtitle("Value of fish species") + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, margin = margin(t = 10)))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 print(fish_plot)
 ```
@@ -67,7 +71,7 @@ endangered_ger_plot <- ggplot(data = endangered_ger, aes(x = Species, y = Value)
   xlab("Species") + 
   ylab("Value") +
   ggtitle("Value of endangered species in germany") + 
-  theme(axis.title.x = element_text(angle = 0, hjust = 1, margin = margin(t = 10)))
+  theme(axis.title.x = element_text(angle = 0, hjust = 1))
 
 print(endangered_ger_plot)
 ```
@@ -86,7 +90,7 @@ endangered_ger_wo_invertebrates_plot <- ggplot(data = endangered_ger_wo_inverteb
   xlab("Species") + 
   ylab("Value") +
   ggtitle("Value of endangered species without invertebrates in germany") + 
-  theme(axis.title.x = element_text(angle = 0, hjust = 1, margin = margin(t = 10)))
+  theme(axis.title.x = element_text(angle = 0, hjust = 1))
 
 print(endangered_ger_wo_invertebrates_plot)
 ```
@@ -185,6 +189,127 @@ plot(my_tree,
 text(my_tree)
 ```
 
+## Confusion Matrix
+```{r}
+# data for confusion_matrix
+pred <- predict(my_tree, zoo_test, type = "class")
+
+confusion_matrix <- confusionMatrix(pred, factor(zoo_test$Class_Type))
+confusion_matrix
+
+# plot confusion_matrix
+ggplot(data = as.data.frame(confusion_matrix$table), aes(x = Prediction, y = Reference, fill = Freq)) +
+  geom_tile() +
+  geom_text(aes(label = Freq)) + 
+  scale_fill_gradient(low="white", high="#009194") +
+  ggtitle("Tree")
+```
+
+## Random Forest
+```{r}
+forest <- randomForest(factor(zoo_training$Class_Type) ~ .-animal_name-Class_Type-class_type, data = zoo_training, ntree = 100)
+pred_forest <- predict(forest, zoo_test, type = "class")
+
+confusion_matrix_forest <- confusionMatrix(pred_forest , factor(zoo_test$Class_Type))
+
+# plot confusion_matrix
+ggplot(data = as.data.frame(confusion_matrix_forest$table), aes(x = Prediction, y = Reference, fill = Freq)) +
+  geom_tile() +
+  geom_text(aes(label = Freq)) + 
+  scale_fill_gradient(low="white", high="#009194") +
+  ggtitle("RandomForest")
+
+
+varImpPlot(forest)
+```
+Feathers are most important
+
+## Dimensional Reduction
+```{r}
+# prepare data for umap
+zoo_training_umap <- subset(zoo_training, select= -c(animal_name, class_type, Class_Type))
+labels <- subset(zoo_training, select = Class_Type)
+
+
+umap_fit <- umap(zoo_training_umap)
+umap_df <- as.data.frame(umap_fit$layout)
+umap_final <- cbind(umap_df, labels)
+
+#plot(umap_df$V1,umap_df$V2, type = "p" )
+
+ggplot(umap_final, aes(x = V1, y = V2, color = Class_Type)) +
+  geom_point() +
+  ggtitle("UMAP Plot")
+
+
+#training on umap data
+
+zoo_partition_umap <- createDataPartition(umap_final$Class_Type, p = 0.7, list = FALSE)
+zoo_training_umap <- umap_final[zoo_partition_umap,]
+zoo_test_umap <- umap_final[-zoo_partition_umap,]
+
+
+umap_forest <- randomForest(factor(Class_Type)~ ., zoo_training_umap)
+
+pred_forest_umap <- predict(umap_forest, zoo_test_umap, type = "class")
+
+confusion_matrix_umap_forest <- confusionMatrix(pred_forest_umap , factor(zoo_test_umap$Class_Type))
+
+# plot confusion_matrix
+ggplot(data = as.data.frame(confusion_matrix_umap_forest$table), aes(x = Prediction, y = Reference, fill = Freq)) +
+  geom_tile() +
+  geom_text(aes(label = Freq)) + 
+  scale_fill_gradient(low="white", high="#009194") +
+  ggtitle("Random Forest UMAP")
+
+#Might vary because of other data representation
+```
+
+## KNN
+```{r}
+zoo_train_knn <-subset(zoo_training, select = -c(animal_name, class_type))
+zoo_test_knn <- subset(zoo_test, select = -c(animal_name, class_type))
+
+#only odd values from 1 to 25 used for knn
+k_values <- seq(from = 1, to = 25, by = 2)
+
+knn_zoo <- train(Class_Type ~ ., data = zoo_train_knn, method = "knn", preProcess = c("center", "scale"), tuneGrid = data.frame(k = k_values))
+knn_zoo
+plot(knn_zoo, main = "Accuracy based on # of neighbors")
+
+pred_knn <- predict(knn_zoo, newdata = zoo_test_knn, type = "raw")
+
+
+confusion_matrix_knn <- confusionMatrix(pred_knn , factor(zoo_test_knn$Class_Type))
+
+# plot confusion_matrix
+ggplot(data = as.data.frame(confusion_matrix_knn$table), aes(x = Prediction, y = Reference, fill = Freq)) +
+  geom_tile() +
+  geom_text(aes(label = Freq)) + 
+  scale_fill_gradient(low="white", high="#009194") +
+  ggtitle("KNN")
+```
+
+## XGBoost
+```{r}
+#no char data
+zoo_train_xgbst <-subset(zoo_training, select = -c(animal_name, Class_Type))
+zoo_test_xgbst <- subset(zoo_test, select = -c(animal_name, Class_Type))
+
+zoo_xgbst <- xgboost(data = as.matrix(zoo_train_xgbst), label = zoo_train_xgbst$class_type, max.depth = 10, nrounds =20, objective = "multi:softmax", num_class = 8)
+
+pred_xgbst <- predict(zoo_xgbst, as.matrix(zoo_test_xgbst))
+
+
+confusion_matrix_xgbst <- confusionMatrix(factor(pred_xgbst) , factor(zoo_test_xgbst$class_type))
+
+# plot confusion_matrix
+ggplot(data = as.data.frame(confusion_matrix_xgbst$table), aes(x = Prediction, y = Reference, fill = Freq)) +
+  geom_tile() +
+  geom_text(aes(label = Freq)) + 
+  scale_fill_gradient(low="white", high="#009194") +
+  ggtitle("XGBoost")
+```
 
 
 
