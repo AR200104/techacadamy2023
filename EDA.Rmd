@@ -1,6 +1,6 @@
 ---
-title: "EDA_A_Romanov"
-author: "Andreas Romanov"
+title: "EDA_AR"
+author: "AR"
 output: html_document
 date: "2023-05-26"
 ---
